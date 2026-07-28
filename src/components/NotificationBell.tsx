@@ -29,7 +29,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
     }
     fetchNotifications()
 
-    // Real Supabase Realtime subscription — not polling
+    // Real Supabase Realtime subscription
     const channel = supabase
       .channel(`user-notifications-${userId}`)
       .on(
@@ -63,26 +63,26 @@ export default function NotificationBell({ userId }: { userId: string }) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-white/6 bg-white/4 text-slate-400 transition-all duration-150 hover:bg-white/8 hover:text-slate-200 cursor-pointer"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 transition-all duration-150 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
         aria-label="Notifications"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="animate-pulse-glow absolute right-1.5 top-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-[8px] font-bold text-white ring-2 ring-[#040712]">
+          <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white ring-2 ring-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="glass-card absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl shadow-2xl shadow-black/60">
+        <div className="glass-card absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-xl shadow-gray-200/50">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-            <span className="text-sm font-bold text-white">Notifications</span>
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 bg-gray-50/50">
+            <span className="text-sm font-bold text-gray-900">Notifications</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
-                className="flex items-center gap-1 text-xs font-semibold text-indigo-400 transition hover:text-indigo-300 cursor-pointer"
+                className="flex items-center gap-1 text-xs font-semibold text-emerald-600 transition hover:text-emerald-700 cursor-pointer"
               >
                 <Check className="h-3 w-3" /> Mark all read
               </button>
@@ -93,23 +93,23 @@ export default function NotificationBell({ userId }: { userId: string }) {
           <div className="max-h-72 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <Inbox className="h-8 w-8 stroke-1 text-slate-700" />
-                <span className="text-xs text-slate-500">No notifications yet</span>
+                <Inbox className="h-8 w-8 stroke-1 text-gray-300" />
+                <span className="text-xs text-gray-400">No notifications yet</span>
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-gray-100">
                 {notifications.map((notif) => (
                   <div
                     key={notif.id}
                     className={`px-4 py-3 text-xs transition-colors ${
-                      notif.read ? 'text-slate-500' : 'bg-indigo-500/5 text-slate-200'
+                      notif.read ? 'text-gray-500' : 'bg-emerald-50/40 text-gray-900'
                     }`}
                   >
                     {!notif.read && (
-                      <span className="mb-1.5 inline-block h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                      <span className="mb-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     )}
                     <p className="font-medium leading-relaxed">{notif.message}</p>
-                    <span className="mt-1 block text-[10px] text-slate-600">
+                    <span className="mt-1 block text-[10px] text-gray-400">
                       {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       {' · '}
                       {new Date(notif.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

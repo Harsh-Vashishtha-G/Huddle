@@ -25,30 +25,30 @@ export default function Header({ profile }: { profile: Profile }) {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-[#040712]/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
 
           {/* Logo + Nav */}
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center group">
-              <span className="text-base font-bold tracking-tight text-white transition-colors group-hover:text-indigo-300">Huddle</span>
+              <span className="text-xl font-bold tracking-tight text-gray-900 transition-colors group-hover:text-emerald-600">Huddle</span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-0.5">
+            <nav className="hidden md:flex items-center gap-1">
               {navItems.map(({ name, href, icon: Icon }) => {
                 const isActive = pathname === href
                 return (
                   <Link
                     key={href}
                     href={href}
-                    className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-150 ${
                       isActive
-                        ? 'bg-indigo-500/15 text-indigo-300 shadow-sm'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                        ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${isActive ? 'text-indigo-400' : ''}`} />
+                    <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-600' : 'text-gray-400'}`} />
                     {name}
                   </Link>
                 )
@@ -61,9 +61,9 @@ export default function Header({ profile }: { profile: Profile }) {
             <NotificationBell userId={profile.id} />
 
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-semibold text-slate-200">{profile.display_name}</span>
-              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                {profile.role === 'admin' && <Shield className="h-2.5 w-2.5 text-indigo-400" />}
+              <span className="text-sm font-semibold text-gray-800">{profile.display_name}</span>
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                {profile.role === 'admin' && <Shield className="h-2.5 w-2.5 text-emerald-600" />}
                 {profile.role}
               </span>
             </div>
@@ -72,7 +72,7 @@ export default function Header({ profile }: { profile: Profile }) {
               <button
                 type="submit"
                 title="Sign Out"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/6 bg-white/4 text-slate-500 transition-all duration-150 hover:border-red-500/20 hover:bg-red-500/8 hover:text-red-400 cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-500 transition-all duration-150 hover:border-red-200 hover:bg-red-50 hover:text-red-600 cursor-pointer"
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -83,15 +83,15 @@ export default function Header({ profile }: { profile: Profile }) {
       </div>
 
       {/* Mobile nav */}
-      <div className="flex md:hidden gap-0.5 px-4 pb-2">
+      <div className="flex md:hidden gap-1 px-4 pb-3 pt-1 border-t border-gray-100">
         {navItems.map(({ name, href, icon: Icon }) => {
           const isActive = pathname === href
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                isActive ? 'bg-indigo-500/15 text-indigo-300' : 'text-slate-500 hover:text-slate-300'
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                isActive ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
