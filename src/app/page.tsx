@@ -45,16 +45,16 @@ export default async function Home() {
               </nav>
 
               {/* Actions — right */}
-              <div className="w-32 flex-shrink-0 flex justify-end items-center gap-3">
+              <div className="flex-shrink-0 flex justify-end items-center gap-3">
                 <Link
                   href="/login"
-                  className="btn-secondary px-4 py-2 text-sm font-semibold"
+                  className="btn-secondary whitespace-nowrap px-4 py-2 text-sm font-semibold"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/login"
-                  className="btn-primary inline-flex items-center gap-1.5 px-5 py-2 text-sm font-semibold"
+                  className="btn-primary whitespace-nowrap inline-flex items-center gap-1.5 px-5 py-2 text-sm font-semibold"
                 >
                   Get Started <ArrowRight className="h-4 w-4" />
                 </Link>

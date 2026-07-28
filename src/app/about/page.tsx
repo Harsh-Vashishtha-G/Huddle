@@ -123,11 +123,11 @@ export default function AboutPage() {
             </nav>
 
             {/* Actions */}
-            <div className="w-32 flex-shrink-0 flex justify-end items-center gap-3">
-              <Link href="/login" className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-full border border-gray-200 hover:border-gray-300">
+            <div className="flex-shrink-0 flex justify-end items-center gap-3">
+              <Link href="/login" className="whitespace-nowrap text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 rounded-full border border-gray-200 hover:border-gray-300">
                 Log In
               </Link>
-              <Link href="/login" className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors">
+              <Link href="/login" className="whitespace-nowrap inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors">
                 Get Started <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
