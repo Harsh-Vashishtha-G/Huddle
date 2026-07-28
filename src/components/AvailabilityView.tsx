@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createBooking, cancelBooking } from '@/app/actions/booking'
-import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, Download, XCircle } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, Download, XCircle, Zap, AlertCircle, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { parseTstzrange, formatTimeAMPM } from '@/utils/date'
 import * as ics from 'ics'
@@ -13,9 +13,7 @@ export interface Booking {
   user_id: string
   time_range: string
   status: 'pending' | 'approved' | 'rejected' | 'cancelled'
-  profiles: {
-    display_name: string
-  }
+  profiles: { display_name: string }
 }
 
 interface Resource {
@@ -35,46 +33,44 @@ export default function AvailabilityView({
   initialBookings: Booking[]
   currentUserId: string
 }) {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const today = new Date().toISOString().split('T')[0]
+  const [selectedDate, setSelectedDate] = useState(today)
   const [bookings, setBookings] = useState<Booking[]>(initialBookings)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Filter bookings for the selected date
   const dailyBookings = bookings.filter((b) => {
     if (b.status === 'cancelled' || b.status === 'rejected') return false
     const range = parseTstzrange(b.time_range)
     if (!range) return false
-    
-    // Check if range overlaps with the selected date (local calendar time)
-    const dateStr = range.start.toLocaleDateString('en-CA') // YYYY-MM-DD
+    const dateStr = range.start.toLocaleDateString('en-CA')
     const endDateStr = range.end.toLocaleDateString('en-CA')
     return dateStr === selectedDate || endDateStr === selectedDate
   })
 
-  // 30-minute slots for display (08:00 to 20:00)
+  // 30-minute intervals 08:00 – 20:00
   const timeSlots = Array.from({ length: 25 }, (_, i) => {
     const hour = Math.floor(i / 2) + 8
     const min = i % 2 === 0 ? '00' : '30'
     return `${hour.toString().padStart(2, '0')}:${min}`
   })
 
-  async function handleBook(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const formElement = event.currentTarget
+  async function handleBook(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formEl = e.currentTarget
     setError(null)
     setSuccess(null)
     setLoading(true)
 
-    const formData = new FormData(formElement)
-    formData.append('resourceId', resource.id)
-    formData.append('date', selectedDate)
+    const fd = new FormData(formEl)
+    fd.append('resourceId', resource.id)
+    fd.append('date', selectedDate)
 
     try {
-      await createBooking(formData)
+      await createBooking(fd)
       setSuccess('Booking submitted successfully!')
-      formElement.reset()
+      formEl.reset()
       window.location.reload()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
@@ -84,269 +80,232 @@ export default function AvailabilityView({
   }
 
   async function handleCancel(bookingId: string) {
-    if (!confirm('Are you sure you want to cancel this booking?')) return
-
+    if (!confirm('Cancel this booking?')) return
     try {
       await cancelBooking(bookingId, resource.id)
-      setBookings((prev) =>
-        prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b))
-      )
+      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b)))
       setSuccess('Booking cancelled.')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
     }
   }
 
-  function downloadICSFile(b: Booking) {
+  function downloadICS(b: Booking) {
     const range = parseTstzrange(b.time_range)
     if (!range) return
-
     const event: ics.EventAttributes = {
-      start: [
-        range.start.getFullYear(),
-        range.start.getMonth() + 1,
-        range.start.getDate(),
-        range.start.getHours(),
-        range.start.getMinutes(),
-      ],
-      end: [
-        range.end.getFullYear(),
-        range.end.getMonth() + 1,
-        range.end.getDate(),
-        range.end.getHours(),
-        range.end.getMinutes(),
-      ],
-      title: `Booking: ${resource.name}`,
-      description: `Huddle reservation. Status: ${b.status}`,
+      start: [range.start.getFullYear(), range.start.getMonth() + 1, range.start.getDate(), range.start.getHours(), range.start.getMinutes()],
+      end: [range.end.getFullYear(), range.end.getMonth() + 1, range.end.getDate(), range.end.getHours(), range.end.getMinutes()],
+      title: `${resource.name} — Huddle Booking`,
+      description: `Huddle reservation for ${resource.name}. Status: ${b.status}`,
       location: 'Huddle Booking System',
     }
-
-    ics.createEvent(event, (error, value) => {
-      if (error) {
-        setError('Failed to generate calendar file.')
-        return
-      }
-      const blob = new Blob([value], { type: 'text/calendar;charset=utf-8' })
+    ics.createEvent(event, (err, val) => {
+      if (err) { setError('Failed to generate .ics file'); return }
+      const blob = new Blob([val], { type: 'text/calendar' })
       const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `huddle-booking-${resource.name.toLowerCase().replace(/\s+/g, '-')}.ics`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `huddle-${resource.name.toLowerCase().replace(/\s+/g, '-')}.ics`
+      a.click()
+      URL.revokeObjectURL(url)
     })
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Back button */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-200 mb-6 transition"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back to Resources
-      </Link>
+    <div className="relative min-h-screen">
+      <div className="ambient-glow" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left column: Resource Info & Booking form */}
-        <div className="space-y-6">
-          <div className="rounded-xl border border-slate-900 bg-slate-950 p-6">
-            <h1 className="text-xl font-bold text-slate-100">{resource.name}</h1>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              {resource.description || 'No description provided.'}
-            </p>
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          className="mb-7 inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-200"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to Resources
+        </Link>
 
-            <div className="mt-4 flex items-center gap-4 text-xs font-semibold text-slate-400">
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4 text-indigo-400" /> Max Capacity: {resource.capacity}
-              </span>
-              <span>
-                Approval:{' '}
-                {resource.requires_approval ? (
-                  <span className="text-amber-400">Required</span>
-                ) : (
-                  <span className="text-emerald-400">Auto-approved</span>
-                )}
-              </span>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+          {/* Left: Resource info + Booking form */}
+          <div className="space-y-5">
+            {/* Resource card */}
+            <div className="glass-card rounded-2xl p-6">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-300">
+                <Zap className="h-3 w-3" />
+                {resource.requires_approval ? 'Approval Required' : 'Instant Booking'}
+              </div>
+              <h1 className="text-xl font-extrabold text-white">{resource.name}</h1>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">
+                {resource.description || 'No description provided.'}
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-indigo-400" />
+                  {resource.capacity} seat{resource.capacity !== 1 ? 's' : ''}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-indigo-400" />
+                  08:00 AM – 08:00 PM
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Booking Form */}
-          <div className="rounded-xl border border-slate-900 bg-slate-950 p-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-650" />
-            <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
-              <Clock className="h-5 w-5 text-indigo-400" /> Book a Slot
-            </h2>
-
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400">
-                {success}
-              </div>
-            )}
-
-            <form onSubmit={handleBook} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Start Time
-                </label>
-                <select
-                  name="startTime"
-                  required
-                  className="w-full rounded-lg border border-slate-850 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500 transition"
-                >
-                  {timeSlots.slice(0, -1).map((time) => (
-                    <option key={time} value={time}>
-                      {formatTimeAMPM(time)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  End Time
-                </label>
-                <select
-                  name="endTime"
-                  required
-                  defaultValue="09:00"
-                  className="w-full rounded-lg border border-slate-850 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none focus:border-indigo-555 transition"
-                >
-                  {timeSlots.slice(1).map((time) => (
-                    <option key={time} value={time}>
-                      {formatTimeAMPM(time)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Recurring booking (weekly)
-                </label>
-                <select
-                  name="recurrenceWeeks"
-                  required
-                  className="w-full rounded-lg border border-slate-850 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500 transition"
-                >
-                  <option value="0">Single booking (No recurrence)</option>
-                  <option value="2">Repeat weekly for 2 weeks</option>
-                  <option value="4">Repeat weekly for 4 weeks</option>
-                  <option value="8">Repeat weekly for 8 weeks</option>
-                  <option value="12">Repeat weekly for 12 weeks</option>
-                </select>
-                <p className="mt-1 text-[10px] text-slate-500 leading-normal">
-                  If recurring, we will attempt to book this time slot on this day of the week for N consecutive weeks. The entire series will fail if there is an overlap conflict.
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-lg bg-indigo-650 py-2.5 text-sm font-semibold text-white hover:bg-indigo-550 disabled:bg-indigo-800 transition cursor-pointer"
-              >
-                {loading ? 'Processing...' : 'Confirm Reservation'}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Right column: Availability Timeline */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-slate-900 bg-slate-950 p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-indigo-400" /> Availability Timeline
+            {/* Booking form */}
+            <div className="glass-card relative overflow-hidden rounded-2xl p-6">
+              {/* Accent bar */}
+              <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-indigo-500 to-purple-600" />
+              <h2 className="mb-5 flex items-center gap-2 text-base font-bold text-white">
+                <Clock className="h-4 w-4 text-indigo-400" /> Book a Slot
               </h2>
 
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="rounded-lg border border-slate-850 bg-slate-900 px-4 py-1.5 text-sm text-slate-100 outline-none focus:border-indigo-500 transition cursor-pointer"
-              />
+              {error && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/8 p-3.5 text-sm text-red-400">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 p-3.5 text-sm text-emerald-400">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                  {success}
+                </div>
+              )}
+
+              <form onSubmit={handleBook} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-400">Start Time</label>
+                  <select
+                    name="startTime"
+                    required
+                    className="w-full cursor-pointer rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white transition-all focus:border-indigo-500/60"
+                  >
+                    {timeSlots.slice(0, -1).map((t) => (
+                      <option key={t} value={t} style={{ background: '#0b0f1e' }}>{formatTimeAMPM(t)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-400">End Time</label>
+                  <select
+                    name="endTime"
+                    required
+                    defaultValue="09:00"
+                    className="w-full cursor-pointer rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white transition-all focus:border-indigo-500/60"
+                  >
+                    {timeSlots.slice(1).map((t) => (
+                      <option key={t} value={t} style={{ background: '#0b0f1e' }}>{formatTimeAMPM(t)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-400">Recurrence</label>
+                  <select
+                    name="recurrenceWeeks"
+                    required
+                    className="w-full cursor-pointer rounded-xl border border-white/8 bg-white/4 px-4 py-2.5 text-sm text-white transition-all focus:border-indigo-500/60"
+                  >
+                    <option value="0" style={{ background: '#0b0f1e' }}>Single booking (no recurrence)</option>
+                    <option value="2" style={{ background: '#0b0f1e' }}>Repeat weekly — 2 weeks</option>
+                    <option value="4" style={{ background: '#0b0f1e' }}>Repeat weekly — 4 weeks</option>
+                    <option value="8" style={{ background: '#0b0f1e' }}>Repeat weekly — 8 weeks</option>
+                    <option value="12" style={{ background: '#0b0f1e' }}>Repeat weekly — 12 weeks</option>
+                  </select>
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500">
+                    Recurring series will fail atomically if any week has an overlap conflict.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary w-full rounded-xl py-3 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {loading ? 'Processing...' : 'Confirm Reservation'}
+                </button>
+              </form>
             </div>
+          </div>
 
-            {/* Bookings table/list for the selected date */}
-            {dailyBookings.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
-                <p className="text-sm">No reservations for this date.</p>
-                <p className="text-xs mt-1">Select times on the left to make the first booking.</p>
+          {/* Right: Availability timeline */}
+          <div className="lg:col-span-2">
+            <div className="glass-card rounded-2xl p-6">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="flex items-center gap-2 text-base font-bold text-white">
+                  <CalendarIcon className="h-4 w-4 text-indigo-400" />
+                  Availability Timeline
+                </h2>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="cursor-pointer rounded-xl border border-white/8 bg-white/4 px-4 py-2 text-sm text-white transition-all focus:border-indigo-500/60"
+                />
               </div>
-            ) : (
-              <div className="space-y-4">
-                {dailyBookings.map((b) => {
-                  const range = parseTstzrange(b.time_range)
-                  if (!range) return null
 
-                  const timeStr = `${range.start.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })} - ${range.end.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}`
+              {dailyBookings.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/8 py-14 text-center">
+                  <CalendarIcon className="h-8 w-8 stroke-1 text-slate-700" />
+                  <p className="text-sm text-slate-500">No reservations for this date.</p>
+                  <p className="text-xs text-slate-600">Use the form on the left to be the first!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dailyBookings.map((b) => {
+                    const range = parseTstzrange(b.time_range)
+                    if (!range) return null
 
-                  const isOwner = b.user_id === currentUserId
+                    const timeStr = `${range.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${range.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    const isOwner = b.user_id === currentUserId
 
-                  return (
-                    <div
-                      key={b.id}
-                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg border ${
-                        b.status === 'approved'
-                          ? 'border-emerald-500/20 bg-emerald-950/5'
-                          : 'border-slate-850 bg-slate-900/20'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-255">{timeStr}</span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                              b.status === 'approved'
-                                ? 'bg-emerald-950 text-emerald-400'
-                                : 'bg-amber-950 text-amber-400'
-                            }`}
-                          >
-                            {b.status}
-                          </span>
+                    return (
+                      <div
+                        key={b.id}
+                        className={`flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+                          b.status === 'approved'
+                            ? 'border-emerald-500/15 bg-emerald-500/5'
+                            : 'border-white/6 bg-white/2'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-200">{timeStr}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              b.status === 'approved' ? 'badge-approved' : 'badge-pending'
+                            }`}>
+                              {b.status}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Booked by <span className="text-slate-300 font-medium">{b.profiles.display_name}</span>
+                          </p>
                         </div>
-                        <p className="mt-1 text-xs text-slate-400">
-                          Booked by: <span className="text-slate-350">{b.profiles.display_name}</span>
-                        </p>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        {b.status === 'approved' && (
-                          <button
-                            onClick={() => downloadICSFile(b)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
-                            title="Export Calendar File"
-                          >
-                            <Download className="h-3.5 w-3.5" /> .ics
-                          </button>
-                        )}
-
-                        {isOwner && (
-                          <button
-                            onClick={() => handleCancel(b.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition cursor-pointer"
-                          >
-                            <XCircle className="h-3.5 w-3.5" /> Cancel
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {b.status === 'approved' && (
+                            <button
+                              onClick={() => downloadICS(b)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/8 hover:text-white"
+                            >
+                              <Download className="h-3.5 w-3.5" /> .ics
+                            </button>
+                          )}
+                          {isOwner && (b.status === 'pending' || b.status === 'approved') && (
+                            <button
+                              onClick={() => handleCancel(b.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/15 bg-red-500/8 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/15"
+                            >
+                              <XCircle className="h-3.5 w-3.5" /> Cancel
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

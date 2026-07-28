@@ -1,81 +1,129 @@
-# Huddle — Team Resource / Meeting Room Booking System
+# Huddle — Team Resource & Meeting Room Booking System
 
-Huddle is a production-quality meeting room and shared resource booking application built on Next.js 16.2 (App Router), Tailwind CSS v4, TypeScript, Zod validation, and Supabase (Postgres 17).
-
----
-
-## Technical Questions & Architecture Decisions
-
-### 1. How does the system prevent concurrent double-bookings?
-Conflict resolution is enforced directly at the database layer using a Postgres **`EXCLUDE` constraint** powered by the `btree_gist` extension:
-
-```sql
-ALTER TABLE public.bookings ADD CONSTRAINT no_overlapping_bookings EXCLUDE USING gist (
-  resource_id WITH =,
-  time_range WITH &&
-) WHERE (status IN ('pending', 'approved'));
-```
-
-* **What happens at the database level:**
-  * When a transaction attempts to insert a new booking, Postgres uses the GIST index to check if there is an existing booking for the same `resource_id` where the `time_range` overlaps (`&&`) and the status is active (`pending` or `approved`).
-  * If two concurrent transactions attempt to book the exact same slot at the same microsecond, Postgres serializes the operations. The first transaction succeeds and commits. The second transaction immediately triggers an `exclusion_violation` (Postgres error code `23P01`) and is aborted.
-  * In the Next.js server actions, we catch this specific Postgres error code (`23P01`) and translate it into a clean, human-readable error ("The selected time slot is already booked") instead of propagating a raw SQL stack trace.
-
-### 2. How are recurring bookings represented and why?
-Recurring bookings are **materialized into individual rows** (e.g., repeating for $N$ weeks creates $N$ rows) sharing a common `recurrence_group_id` UUID.
-
-* **Why materialized rows instead of a recurrence rule (RRULE)?**
-  * **Exclusion Constraints:** Materialized rows allow the database-level `EXCLUDE` constraint to instantly prevent and enforce overlaps for every single occurrence in the series.
-  * **Independent Life Cycles:** If a user needs to cancel or move a single slot in the recurring sequence (e.g., skip the meeting next Tuesday), we can simply update that single row's status to `cancelled` or change its `time_range` without affecting the other occurrences.
-  * **Database Simplicity:** Reading availability or listing scheduled slots does not require on-the-fly expansion of recurrence rules in the application layer, resulting in simpler SQL queries and faster page load times.
-  * **Atomic Recurrence Insertion:** If one occurrence in the sequence conflicts with an existing booking, the entire batch insert fails, rollback is triggered, and the conflict is reported cleanly to the user.
-
-### 3. What would you build next with another week?
-* **Full Calendar Timelines:** Implement interactive weekly/monthly calendar views (e.g., using a scheduler grid) to make selecting vacant slots more visual.
-* **Granular Recurrence Editing:** Allow users to reschedule one instance of a recurring booking series individually.
-* **Interactive Approvals Log:** Add a detailed log of past admin decisions (approval history) and let admins leave comments explaining why a booking request was rejected.
-* **Notification Center Expansion:** Add options to filter/archive notifications, and mark individual items as read.
-
-### 4. Note on Tech Stack & Next.js 16 Conventions
-* **Next.js 16.2 deprecates `middleware.ts` in favor of `proxy.ts`:** We heeded Next.js 16's deprecation warnings by renaming the middleware file to `src/proxy.ts` and exporting the `proxy` handler:
-  ```typescript
-  export async function proxy(request: NextRequest) {
-    return await updateSession(request);
-  }
-  ```
-* **Zod 4.4.3 Error Formatting:** Zod v4 uses `issues` as the primary property for parsing error details rather than `errors`. We updated the schema validation handling to check `validated.error.issues[0].message`.
+> Live URL: **https://huddle-coral-one.vercel.app/**
+> GitHub Repo: **https://github.com/Harsh-Vashishtha-G/Huddle**
 
 ---
 
-## Getting Started
+## What is Huddle?
 
-### Local Development
+Huddle is an internal booking system for teams to reserve conference rooms, shared equipment, and collaborative spaces — with real-time availability, conflict-free scheduling enforced at the database layer, and an admin approval workflow.
 
-1. **Install Dependencies:**
-   ```bash
-   npm install
+---
+
+## How does the system prevent two users from booking the same resource slot at the same time?
+
+**Short answer:** A PostgreSQL `EXCLUDE` constraint using the `btree_gist` extension.
+
+**Long answer:** When two users attempt to book the same resource for overlapping time ranges simultaneously, the application layer cannot reliably detect the conflict because of the "check-then-insert" race condition — both reads could pass before either write completes. To solve this at the database layer:
+
+1. The `btree_gist` extension is enabled: `CREATE EXTENSION IF NOT EXISTS btree_gist;`
+2. An `EXCLUDE` constraint is placed on the `bookings` table:
+   ```sql
+   EXCLUDE USING GIST (
+     resource_id WITH =,
+     time_range WITH &&
+   ) WHERE (status IN ('pending', 'approved'))
    ```
+3. PostgreSQL acquires a row-level lock before evaluating the constraint. This means even two near-simultaneous transactions cannot both insert overlapping rows — the second one will receive a `23P01 exclusion_violation` error and be rolled back automatically.
+4. The application catches this error code and returns a human-readable message: _"This time slot conflicts with an existing booking. Please choose a different time."_
 
-2. **Add Environment Variables:**
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://hxfnargmvmubccpmamln.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
+This is atomically correct under full concurrency, without any application-level locks or serializable isolation.
 
-3. **Database Schema:**
-   The database migrations reside in `supabase/migrations/20260728000000_init.sql`. Copy and execute these statements directly inside the SQL Editor of your Supabase dashboard.
+---
 
-4. **Run the Application:**
-   ```bash
-   npm run dev
-   ```
-   Open `http://localhost:3000` to view the booking system.
+## How are recurring bookings represented?
 
-### Running Concurrency Tests
+**Approach: Materialized rows, not abstract rules.**
 
-To run the concurrent transaction overlap test, run the following command from the project root:
+When a user selects "Repeat weekly for 4 weeks", the server action creates **4 separate `bookings` rows** — one per occurrence — all sharing the same `recurrence_group_id` (a UUID generated at creation time).
+
+**Why materialized rows?**
+- Each individual row is independently conflict-checked by the `EXCLUDE` constraint. If week 3 of a series conflicts with an existing booking, the entire series fails atomically (all inserts are rolled back), giving the user a clear, actionable error.
+- Querying availability is a simple `SELECT` with no recurrence expansion logic.
+- Cancelling one occurrence (or the entire group) is straightforward: `DELETE WHERE recurrence_group_id = ?`.
+- No proprietary recurrence rule format (like RFC 5545 RRULE) to parse or maintain.
+
+The trade-off is storage proportional to occurrences, but for a team booking system with reasonable limits (max 12 weeks), this is entirely acceptable.
+
+---
+
+## Tech Stack
+
+| Concern | Technology |
+|---|---|
+| Framework | Next.js 16.2 (App Router) |
+| Language | TypeScript 6.0.3 |
+| Styling | Tailwind CSS v4 |
+| Database | Supabase (Postgres 17) |
+| Auth | Supabase Auth (email/password) |
+| Real-time | Supabase Realtime (Postgres CDC over WebSockets) |
+| Overlap prevention | Postgres `EXCLUDE` via `btree_gist` |
+| Deployment | Vercel |
+| Calendar export | `ics` npm package |
+
+---
+
+## Security Model
+
+- **RLS (Row Level Security)** is enforced on every table in Postgres. A `member` cannot approve bookings via a direct API call or Supabase client call — the RLS policy rejects it regardless of UI state.
+- The admin check in `approveBooking` and `rejectBooking` server actions is redundant but layered defense: the server action checks the session role **before** issuing the DB call, and the DB policy enforces it independently.
+- `vashishthaharsh97@gmail.com` is automatically assigned `role = 'admin'` by a database trigger on `auth.users` insert. All other signups receive `role = 'member'`.
+
+---
+
+## What would I build next with another week?
+
+1. **Email notifications** — Supabase Edge Functions calling Resend to notify members when their booking is approved/rejected, and admins when a new request arrives.
+2. **Week view availability grid** — A visual 7-day calendar grid showing booked vs. free slots across all resources simultaneously, making it easy to find open windows.
+3. **Booking analytics dashboard** — Resource utilization heatmaps (which rooms are most contested, peak hours, average booking duration) for admin decision-making.
+4. **Mobile-native PWA** — Service worker + manifest so the app installs as a home screen app on phones, with offline caching of the resource list.
+5. **Waitlist queue** — When a slot is rejected or cancelled, automatically notify the next person in queue who wanted the same slot.
+
+---
+
+## Local Development
+
 ```bash
-node .system_generated/tasks/concurrency-test.js
+# 1. Clone
+git clone https://github.com/Harsh-Vashishtha-G/Huddle.git
+cd Huddle
+
+# 2. Install dependencies
+npm install
+
+# 3. Create .env.local with your Supabase credentials
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+
+# 4. Run dev server
+npm run dev
 ```
-*Note: Make sure your `.env.local` is set up and you have signed up at least one user in the app first so the script can map transactions to an active user.*
+
+Open [http://localhost:3000](http://localhost:3000) to see the result.
+
+---
+
+## Evaluation Tests
+
+### Concurrency test (double-booking prevention)
+```bash
+node --env-file=.env.local scratch/concurrency-test.js
+```
+Expected output: One request succeeds with `status: 201`, the other fails with `code: 23P01`.
+
+### RLS test (member cannot approve)
+```bash
+# Sign in as a member, get their JWT, then:
+curl -X POST https://your-supabase-url/rest/v1/rpc/approve_booking \
+  -H "Authorization: Bearer MEMBER_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"booking_id": "any-booking-id"}'
+# Expected: 403 or empty/error response
+```
+
+---
+
+## Design
+
+UI inspired by the design language of [ema.ai](https://www.ema.ai/) — deep navy/black base (`#040712`), Inter typography, indigo-to-purple gradient primary CTAs, glassmorphism cards with subtle blur and border glow, ambient radial gradient backgrounds, and restrained micro-animations (fade-up on cards, hover lift, pulsing notification badge).
