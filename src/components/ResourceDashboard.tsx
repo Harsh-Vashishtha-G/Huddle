@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createResource, deleteResource } from '@/app/actions/resource'
-import { Shield, Plus, Users, Trash2, Search, HelpCircle, Layers } from 'lucide-react'
+import { Shield, Plus, Users, Trash2, Search, Layers } from 'lucide-react'
 
 interface Resource {
   id: string
@@ -42,8 +42,8 @@ export default function ResourceDashboard({
       event.currentTarget.reset()
       setIsCreating(false)
       window.location.reload()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
       setLoading(false)
     }
@@ -55,8 +55,8 @@ export default function ResourceDashboard({
     try {
       await deleteResource(id)
       setResources((prev) => prev.filter((r) => r.id !== id))
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'An unknown error occurred')
     }
   }
 

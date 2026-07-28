@@ -1,8 +1,25 @@
 import { createClient } from '@/utils/supabase/server'
 import { approveBooking, rejectBooking } from '@/app/actions/booking'
 import { parseTstzrange } from '@/components/AvailabilityView'
-import { CheckSquare, User, Clock, Check, X } from 'lucide-react'
+import { CheckSquare, User, Check, X } from 'lucide-react'
 import { redirect } from 'next/navigation'
+
+interface BookingWithRelations {
+  id: string
+  resource_id: string
+  user_id: string
+  time_range: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  created_at: string
+  updated_at: string
+  recurrence_group_id: string | null
+  resources: {
+    name: string
+  } | null
+  profiles: {
+    display_name: string
+  } | null
+}
 
 export default async function ApprovalsPage() {
   const supabase = await createClient()
@@ -54,7 +71,7 @@ export default async function ApprovalsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((b: any) => {
+          {bookings.map((b: BookingWithRelations) => {
             const range = parseTstzrange(b.time_range)
             if (!range) return null
 
@@ -79,7 +96,7 @@ export default async function ApprovalsPage() {
                 className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-5 rounded-xl border border-slate-900 bg-slate-950/50"
               >
                 <div>
-                  <h3 className="font-bold text-slate-200 text-base">{b.resources.name}</h3>
+                  <h3 className="font-bold text-slate-200 text-base">{b.resources?.name}</h3>
                   <p className="mt-1.5 text-sm text-slate-300 flex items-center gap-1.5">
                     <span className="font-medium">{dateStr}</span>
                     <span className="text-slate-600">•</span>
@@ -88,7 +105,7 @@ export default async function ApprovalsPage() {
                   
                   <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
                     <User className="h-3.5 w-3.5 text-indigo-400" />
-                    Requested by: <span className="text-slate-350 font-semibold">{b.profiles.display_name}</span>
+                    Requested by: <span className="text-slate-350 font-semibold">{b.profiles?.display_name}</span>
                   </div>
                 </div>
 

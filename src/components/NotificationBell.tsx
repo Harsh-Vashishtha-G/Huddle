@@ -21,7 +21,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
   // Fetch initial notifications
   useEffect(() => {
     async function fetchNotifications() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('notifications')
         .select('*')
         .order('created_at', { ascending: false })

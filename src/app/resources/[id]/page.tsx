@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import AvailabilityView from '@/components/AvailabilityView'
+import AvailabilityView, { Booking } from '@/components/AvailabilityView'
 import { notFound } from 'next/navigation'
 
 interface PageProps {
@@ -39,7 +39,7 @@ export default async function ResourcePage({ params }: PageProps) {
   return (
     <AvailabilityView
       resource={resource}
-      initialBookings={(bookings as any) || []}
+      initialBookings={(bookings as unknown as Booking[]) || []}
       currentUserId={user.id}
     />
   )

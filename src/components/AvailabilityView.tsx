@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { createBooking, cancelBooking } from '@/app/actions/booking'
-import { Calendar as CalendarIcon, Clock, Users, ShieldAlert, ArrowLeft, Download, XCircle } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, Download, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import * as ics from 'ics'
 
-interface Booking {
+export interface Booking {
   id: string
   resource_id: string
   user_id: string
@@ -88,8 +88,8 @@ export default function AvailabilityView({
       event.currentTarget.reset()
       // Reload bookings by refreshing page state or window location
       window.location.reload()
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
       setLoading(false)
     }
@@ -104,8 +104,8 @@ export default function AvailabilityView({
         prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b))
       )
       setSuccess('Booking cancelled.')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred')
     }
   }
 

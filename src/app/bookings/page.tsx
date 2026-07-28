@@ -4,6 +4,21 @@ import { parseTstzrange } from '@/components/AvailabilityView'
 import { Clock, Calendar, CheckCircle2, XCircle, AlertCircle, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 
+interface BookingWithRelations {
+  id: string
+  resource_id: string
+  user_id: string
+  time_range: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  created_at: string
+  updated_at: string
+  recurrence_group_id: string | null
+  resources: {
+    name: string
+    requires_approval: boolean
+  } | null
+}
+
 export default async function BookingsPage() {
   const supabase = await createClient()
 
@@ -38,7 +53,7 @@ export default async function BookingsPage() {
       {(!bookings || bookings.length === 0) ? (
         <div className="text-center py-16 border border-dashed border-slate-900 rounded-2xl bg-slate-950/20">
           <Clock className="h-10 w-10 mx-auto text-slate-650 stroke-1 mb-3" />
-          <p className="text-sm text-slate-400">You haven't made any bookings yet.</p>
+          <p className="text-sm text-slate-400">You haven&apos;t made any bookings yet.</p>
           <Link
             href="/"
             className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-indigo-400 hover:text-indigo-300 transition"
@@ -48,7 +63,7 @@ export default async function BookingsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((b: any) => {
+          {bookings.map((b: BookingWithRelations) => {
             const range = parseTstzrange(b.time_range)
             if (!range) return null
 
@@ -76,7 +91,7 @@ export default async function BookingsPage() {
               >
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-slate-200 text-base">{b.resources.name}</h3>
+                    <h3 className="font-bold text-slate-200 text-base">{b.resources?.name}</h3>
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         b.status === 'approved'
