@@ -1,6 +1,6 @@
 # Huddle — Team Resource & Meeting Room Booking System
 
-> Live URL: **https://huddle-coral-one.vercel.app/**
+> Live URL: **https://huddleee.vercel.app/**
 > GitHub Repo: **https://github.com/Harsh-Vashishtha-G/Huddle**
 
 ---
