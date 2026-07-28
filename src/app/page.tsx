@@ -20,15 +20,31 @@ export default async function Home() {
         {/* Sticky header */}
         <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur-md">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 items-center justify-between">
-              <div className="flex items-center gap-8">
+            <div className="flex h-16 items-center">
+              {/* Logo — left */}
+              <div className="w-32 flex-shrink-0">
                 <span className="text-xl font-bold tracking-tight text-gray-900">Huddle</span>
-                <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-                  <a href="#how-it-works" className="transition hover:text-emerald-600">How It Works</a>
-                  <a href="#features" className="transition hover:text-emerald-600">Features</a>
-                </nav>
               </div>
-              <div className="flex items-center gap-3">
+
+              {/* Nav — center */}
+              <nav className="hidden md:flex flex-1 justify-center items-center gap-1">
+                {[
+                  { name: 'Home', href: '/' },
+                  { name: 'How It Works', href: '/how-it-works' },
+                  { name: 'Features', href: '/features' },
+                ].map(({ name, href }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-150"
+                  >
+                    {name}
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Actions — right */}
+              <div className="w-32 flex-shrink-0 flex justify-end items-center gap-3">
                 <Link
                   href="/login"
                   className="btn-secondary px-4 py-2 text-sm font-semibold"
