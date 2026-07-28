@@ -3,6 +3,7 @@ import { cancelBooking } from '@/app/actions/booking'
 import { parseTstzrange } from '@/components/AvailabilityView'
 import { Clock, Calendar, CheckCircle2, XCircle, AlertCircle, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
+import ExportICSButton from '@/components/ExportICSButton'
 
 interface BookingWithRelations {
   id: string
@@ -123,6 +124,12 @@ export default async function BookingsPage() {
                 </div>
 
                 <div className="flex items-center gap-3 pt-2 md:pt-0">
+                  {b.status === 'approved' && (
+                    <ExportICSButton
+                      booking={{ id: b.id, time_range: b.time_range, status: b.status }}
+                      resourceName={b.resources?.name || 'Resource'}
+                    />
+                  )}
                   {isPendingOrApproved && (
                     <form
                       action={async () => {
