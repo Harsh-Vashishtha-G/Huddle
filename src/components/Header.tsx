@@ -18,11 +18,11 @@ export default function Header({ profile }: { profile: Profile }) {
   const navItems = [
     { name: 'Resources', href: '/', icon: Layers },
     { name: 'My Bookings', href: '/bookings', icon: Calendar },
-    { name: 'Account', href: '/account', icon: Settings },
   ]
   if (profile.role === 'admin') {
     navItems.push({ name: 'Approvals', href: '/approvals', icon: CheckSquare })
   }
+  navItems.push({ name: 'Account', href: '/account', icon: Settings })
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur-md">
