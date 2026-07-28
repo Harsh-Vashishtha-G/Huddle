@@ -27,19 +27,23 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
 
-  const url = request.nextUrl.clone()
-  const isAuthPage = url.pathname.startsWith('/login') || url.pathname.startsWith('/signup')
-  
-  if (!user && !isAuthPage && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api') && url.pathname !== '/favicon.ico') {
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+    const url = request.nextUrl.clone()
+    const isAuthPage = url.pathname.startsWith('/login') || url.pathname.startsWith('/signup')
+    
+    if (!user && !isAuthPage && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api') && url.pathname !== '/favicon.ico') {
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
 
-  if (user && isAuthPage) {
-    url.pathname = '/'
-    return NextResponse.redirect(url)
+    if (user && isAuthPage) {
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  } catch (error) {
+    console.error('Supabase middleware auth check failed:', error)
   }
 
   return supabaseResponse

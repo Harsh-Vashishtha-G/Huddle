@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        
+        {
+            "type": "chrome",
+            "name": "https://vercel.com/harsh-vashishthas-projects/huddle",
+            "request": "launch",
+            "url": "https://vercel.com/harsh-vashishthas-projects/huddle"
+        }
+    ]
+}
