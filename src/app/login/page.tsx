@@ -1,5 +1,4 @@
 import { login, signup } from './actions'
-import { Zap } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata = {
@@ -30,11 +29,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
       <div className="relative z-10 w-full max-w-md">
         {/* Logo mark */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <Link href="/" className="mb-5 flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/40">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-black tracking-tight text-white">Huddle</span>
+          <Link href="/" className="mb-5 flex items-center justify-center">
+            <span className="text-3xl font-black tracking-tight text-white">Huddle</span>
           </Link>
           <h1 className="text-3xl font-extrabold text-white">Welcome back</h1>
           <p className="mt-2 text-sm text-slate-400">Team Resource &amp; Room Booking System</p>

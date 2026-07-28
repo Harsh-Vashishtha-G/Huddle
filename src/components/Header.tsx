@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
 import NotificationBell from './NotificationBell'
-import { LogOut, Shield, Calendar, Layers, CheckSquare, Zap, Settings } from 'lucide-react'
+import { LogOut, Shield, Calendar, Layers, CheckSquare, Settings } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -31,11 +31,8 @@ export default function Header({ profile }: { profile: Profile }) {
 
           {/* Logo + Nav */}
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30 transition-shadow group-hover:shadow-indigo-500/50">
-                <Zap className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span className="text-base font-bold tracking-tight text-white">Huddle</span>
+            <Link href="/" className="flex items-center group">
+              <span className="text-base font-bold tracking-tight text-white transition-colors group-hover:text-indigo-300">Huddle</span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-0.5">

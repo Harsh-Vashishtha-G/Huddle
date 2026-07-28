@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import ResourceDashboard from '@/components/ResourceDashboard'
 import Link from 'next/link'
-import { ArrowRight, Zap, Shield, Clock, Users, Calendar, CheckCircle } from 'lucide-react'
+import { ArrowRight, Shield, Clock, Users, Calendar, CheckCircle, Zap } from 'lucide-react'
 
 export const metadata = {
   title: 'Huddle — Team Resource & Room Booking',
@@ -22,9 +22,6 @@ export default async function Home() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex h-16 items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/30">
-                  <Zap className="h-4 w-4 text-white" />
-                </div>
                 <span className="text-lg font-bold tracking-tight text-white">Huddle</span>
               </div>
               <Link
