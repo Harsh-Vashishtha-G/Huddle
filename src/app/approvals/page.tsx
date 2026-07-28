@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { approveBooking, rejectBooking } from '@/app/actions/booking'
-import { parseTstzrange } from '@/components/AvailabilityView'
+import { parseTstzrange } from '@/utils/date'
 import { CheckSquare, User, Check, X } from 'lucide-react'
 import { redirect } from 'next/navigation'
 

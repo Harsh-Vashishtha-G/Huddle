@@ -2,7 +2,7 @@
 
 import * as ics from 'ics'
 import { Download } from 'lucide-react'
-import { parseTstzrange } from './AvailabilityView'
+import { parseTstzrange } from '@/utils/date'
 
 export default function ExportICSButton({
   booking,

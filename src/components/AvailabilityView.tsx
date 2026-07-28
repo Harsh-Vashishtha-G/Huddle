@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createBooking, cancelBooking } from '@/app/actions/booking'
 import { Calendar as CalendarIcon, Clock, Users, ArrowLeft, Download, XCircle } from 'lucide-react'
 import Link from 'next/link'
+import { parseTstzrange, formatTimeAMPM } from '@/utils/date'
 import * as ics from 'ics'
 
 export interface Booking {
@@ -23,19 +24,6 @@ interface Resource {
   description: string | null
   capacity: number
   requires_approval: boolean
-}
-
-// Parse PostgreSQL tstzrange to start and end dates
-export function parseTstzrange(rangeStr: string) {
-  const regex = /[\[\()]([^,]+),([^\]\)]+)[\]\)]/
-  const match = rangeStr.match(regex)
-  if (!match) return null
-  const startStr = match[1].replace(/["']/g, '').trim()
-  const endStr = match[2].replace(/["']/g, '').trim()
-  return {
-    start: new Date(startStr),
-    end: new Date(endStr),
-  }
 }
 
 export default function AvailabilityView({
@@ -65,28 +53,28 @@ export default function AvailabilityView({
     return dateStr === selectedDate || endDateStr === selectedDate
   })
 
-  // Hourly slots for display (08:00 to 20:00)
-  const hourSlots = Array.from({ length: 13 }, (_, i) => {
-    const hour = i + 8
-    return `${hour.toString().padStart(2, '0')}:00`
+  // 30-minute slots for display (08:00 to 20:00)
+  const timeSlots = Array.from({ length: 25 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 8
+    const min = i % 2 === 0 ? '00' : '30'
+    return `${hour.toString().padStart(2, '0')}:${min}`
   })
 
   async function handleBook(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const formElement = event.currentTarget
     setError(null)
     setSuccess(null)
     setLoading(true)
 
-    const formData = new FormData(event.currentTarget)
+    const formData = new FormData(formElement)
     formData.append('resourceId', resource.id)
     formData.append('date', selectedDate)
 
     try {
       await createBooking(formData)
       setSuccess('Booking submitted successfully!')
-      // Reset form
-      event.currentTarget.reset()
-      // Reload bookings by refreshing page state or window location
+      formElement.reset()
       window.location.reload()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
@@ -212,9 +200,9 @@ export default function AvailabilityView({
                   required
                   className="w-full rounded-lg border border-slate-850 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500 transition"
                 >
-                  {hourSlots.slice(0, -1).map((time) => (
+                  {timeSlots.slice(0, -1).map((time) => (
                     <option key={time} value={time}>
-                      {time}
+                      {formatTimeAMPM(time)}
                     </option>
                   ))}
                 </select>
@@ -228,11 +216,11 @@ export default function AvailabilityView({
                   name="endTime"
                   required
                   defaultValue="09:00"
-                  className="w-full rounded-lg border border-slate-850 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none focus:border-indigo-500 transition"
+                  className="w-full rounded-lg border border-slate-850 bg-slate-900 px-4 py-2 text-sm text-slate-100 outline-none focus:border-indigo-555 transition"
                 >
-                  {hourSlots.slice(1).map((time) => (
+                  {timeSlots.slice(1).map((time) => (
                     <option key={time} value={time}>
-                      {time}
+                      {formatTimeAMPM(time)}
                     </option>
                   ))}
                 </select>

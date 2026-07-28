@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { cancelBooking } from '@/app/actions/booking'
-import { parseTstzrange } from '@/components/AvailabilityView'
+import { parseTstzrange } from '@/utils/date'
 import { Clock, Calendar, CheckCircle2, XCircle, AlertCircle, HelpCircle } from 'lucide-react'
 import Link from 'next/link'
 import ExportICSButton from '@/components/ExportICSButton'
