@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
 import NotificationBell from './NotificationBell'
-import { LogOut, Shield, Calendar, Layers, CheckSquare, Zap } from 'lucide-react'
+import { LogOut, Shield, Calendar, Layers, CheckSquare, Zap, Settings } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -18,6 +18,7 @@ export default function Header({ profile }: { profile: Profile }) {
   const navItems = [
     { name: 'Resources', href: '/', icon: Layers },
     { name: 'My Bookings', href: '/bookings', icon: Calendar },
+    { name: 'Account', href: '/account', icon: Settings },
   ]
   if (profile.role === 'admin') {
     navItems.push({ name: 'Approvals', href: '/approvals', icon: CheckSquare })
