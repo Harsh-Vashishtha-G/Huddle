@@ -121,6 +121,7 @@ export default function FeaturesPage() {
                 { name: 'Home', href: '/' },
                 { name: 'How It Works', href: '/how-it-works' },
                 { name: 'Features', href: '/features' },
+                { name: 'About', href: '/about' },
               ].map(({ name, href }) => {
                 const isActive = href === '/features'
                 return (
