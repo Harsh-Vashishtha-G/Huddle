@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createResource, deleteResource } from '@/app/actions/resource'
-import { Shield, Plus, Users, Trash2, Search, Layers, Zap, ArrowRight, AlertCircle } from 'lucide-react'
+import { Shield, Plus, Users, Trash2, Search, Layers, Zap, ArrowRight, AlertCircle, Filter } from 'lucide-react'
 
 interface Resource {
   id: string
@@ -22,13 +22,25 @@ export default function ResourceDashboard({
 }) {
   const [resources, setResources] = useState<Resource[]>(initialResources)
   const [searchQuery, setSearchQuery] = useState('')
+  const [approvalFilter, setApprovalFilter] = useState<'all' | 'instant' | 'approval'>('all')
+  const [minCapacity, setMinCapacity] = useState<number>(0)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const filtered = resources.filter((r) =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filtered = resources.filter((r) => {
+    const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    
+    const matchesApproval = 
+      approvalFilter === 'all' ? true :
+      approvalFilter === 'instant' ? !r.requires_approval :
+      r.requires_approval
+
+    const matchesCapacity = r.capacity >= minCapacity
+
+    return matchesSearch && matchesApproval && matchesCapacity
+  })
 
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -159,16 +171,55 @@ export default function ResourceDashboard({
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative mb-8">
-          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search resources..."
-            className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-          />
+        {/* Search & Filter Controls */}
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search resources by name or equipment..."
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filter by booking type */}
+            <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white p-1 text-xs">
+              <Filter className="ml-2 h-3.5 w-3.5 text-gray-400" />
+              <button
+                onClick={() => setApprovalFilter('all')}
+                className={`rounded-lg px-2.5 py-1 font-semibold transition ${approvalFilter === 'all' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setApprovalFilter('instant')}
+                className={`rounded-lg px-2.5 py-1 font-semibold transition ${approvalFilter === 'instant' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                Instant Book
+              </button>
+              <button
+                onClick={() => setApprovalFilter('approval')}
+                className={`rounded-lg px-2.5 py-1 font-semibold transition ${approvalFilter === 'approval' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                Needs Approval
+              </button>
+            </div>
+
+            {/* Filter by capacity */}
+            <select
+              value={minCapacity}
+              onChange={(e) => setMinCapacity(Number(e.target.value))}
+              className="cursor-pointer rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition focus:border-emerald-500"
+            >
+              <option value={0}>Any Capacity</option>
+              <option value={2}>2+ Seats</option>
+              <option value={5}>5+ Seats</option>
+              <option value={10}>10+ Seats</option>
+            </select>
+          </div>
         </div>
 
         {/* Resource grid */}
@@ -176,7 +227,9 @@ export default function ResourceDashboard({
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-20 text-center">
             <Layers className="h-10 w-10 stroke-1 text-gray-400" />
             <p className="text-sm text-gray-500">
-              {searchQuery ? 'No resources match your search.' : 'No resources yet. Create the first one.'}
+              {searchQuery || approvalFilter !== 'all' || minCapacity > 0
+                ? 'No resources match your filters.'
+                : 'No resources yet. Create the first one.'}
             </p>
           </div>
         ) : (
