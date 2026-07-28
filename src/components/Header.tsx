@@ -60,13 +60,19 @@ export default function Header({ profile }: { profile: Profile }) {
           <div className="flex items-center gap-3">
             <NotificationBell userId={profile.id} />
 
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-semibold text-gray-800">{profile.display_name}</span>
+            <Link
+              href="/account"
+              title="Account Settings"
+              className="hidden sm:flex flex-col items-end rounded-lg px-2 py-1 transition hover:bg-gray-50 group cursor-pointer"
+            >
+              <span className="text-sm font-semibold text-gray-800 group-hover:text-emerald-600 transition-colors">
+                {profile.display_name}
+              </span>
               <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
                 {profile.role === 'admin' && <Shield className="h-2.5 w-2.5 text-emerald-600" />}
                 {profile.role}
               </span>
-            </div>
+            </Link>
 
             <form action={logout}>
               <button
